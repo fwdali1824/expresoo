@@ -29,8 +29,10 @@ Expresso CLI Pro is a premium, smart full-stack framework for scaffolding profes
 1. **Add Frontend:**
    Inside your project root, run:
    ```bash
-   npx expresso-cli-pro add:frontend
+   npx expresso-cli-pro g
    ```
+   *(Select "Frontend (React Integration)")*
+
 2. **Run Both (Dev Mode):**
    This starts Node.js and React (Vite) simultaneously:
    ```bash
@@ -58,6 +60,3 @@ If you don't want to type commands, just run:
 npx expresso-cli-pro
 ```
 And select your action from the menu! 🛠📦🚀
-
-## 📜 License
-MIT © Fawad

@@ -12,13 +12,13 @@ const program = new Command();
 program
   .name('expresso-cli-pro')
   .description('Expresso CLI Pro - The ultimate full-stack tool')
-  .version('1.4.7');
+  .version('1.4.8');
 
 const showBanner = () => {
     console.log(chalk.magenta(`
-    ☕ Expresso CLI Pro v1.4.7
+    ☕ Expresso CLI Pro v1.4.8
     --------------------------
-    The Complete Full-Stack Studio
+    The Professional Full-Stack Studio
     --------------------------
     `));
 };
