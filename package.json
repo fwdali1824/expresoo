@@ -1,0 +1,22 @@
+{
+  "name": "expresso-cli-fawad",
+  "version": "1.0.0",
+  "description": "Expresso CLI - Fast MVC backend generator with Repository Pattern and Auth",
+  "main": "index.js",
+  "bin": {
+    "expresso": "./bin/cli.js",
+    "ex": "./bin/cli.js"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "commander": "^11.0.0",
+    "chalk": "^4.1.2",
+    "fs-extra": "^11.1.1"
+  },
+  "keywords": ["cli", "mvc", "generator", "node", "express", "repository-pattern"],
+  "author": "Fawad",
+  "license": "MIT",
+  "type": "commonjs"
+}
