@@ -4,144 +4,136 @@ const { Command } = require('commander');
 const chalk = require('chalk');
 const fs = require('fs-extra');
 const path = require('path');
-
 const { execSync } = require('child_process');
+const inquirer = require('inquirer');
 
 const program = new Command();
 
 program
-  .name('expresso')
-  .description('CLI to generate structure for Model, Controller, Routes, etc.')
-  .version('1.0.0');
+  .name('expresso-cli-pro')
+  .description('Expresso CLI Pro - The ultimate full-stack tool')
+  .version('1.4.7');
 
-// --- INIT COMMAND ---
-program
-  .command('init')
-  .description('Initialize the project structure and install dependencies')
-  .option('--auth', 'Include authentication boilerplate (Login/Register)')
-  .action(async (options) => {
-    const targetDir = process.cwd();
-    const templateDir = path.join(__dirname, '../templates');
-
+const showBanner = () => {
     console.log(chalk.magenta(`
-    ☕ Expresso CLI v1.0.0
+    ☕ Expresso CLI Pro v1.4.7
     --------------------------
-    Fast MVC backend generator
+    The Complete Full-Stack Studio
     --------------------------
     `));
-    console.log(chalk.blue('🚀 Initializing Expresso project...'));
-
-    try {
-      await fs.copy(templateDir, targetDir);
-      
-      if (options.auth) {
-        console.log(chalk.yellow('🔒 Adding Authentication boilerplate...'));
-        // Update index.js to include auth routes
-        const indexPath = path.join(targetDir, 'src', 'index.js');
-        let indexContent = await fs.readFile(indexPath, 'utf8');
-        
-        indexContent = indexContent.replace(
-            "// app.use('/api/users', require('./routes/user.route'));",
-            "app.use('/api/auth', require('./routes/auth.route'));"
-        );
-        
-        await fs.writeFile(indexPath, indexContent);
-      } else {
-        // If no auth, we can remove the auth files from target
-        await fs.remove(path.join(targetDir, 'src', 'routes', 'auth.route.js'));
-        await fs.remove(path.join(targetDir, 'src', 'controllers', 'auth.controller.js'));
-        await fs.remove(path.join(targetDir, 'src', 'middleware', 'auth.middleware.js'));
-      }
-
-      console.log(chalk.green('✔ Files copied successfully.'));
-
-      console.log(chalk.blue('📦 Installing dependencies (Express, Axios, Auth, etc.)...'));
-      execSync('npm install', { stdio: 'inherit', cwd: targetDir });
-      
-      console.log(chalk.green('\n✨ Your Expresoo app is ready! ✨'));
-      console.log(chalk.cyan('Run "npm start" to begin.'));
-    } catch (err) {
-      console.error(chalk.red('Error:'), err.message);
-    }
-  });
-
-// --- GENERATE COMMANDS ---
-
-// Helper to create files from templates
-const generateFile = async (type, name) => {
-    const dir = path.join(process.cwd(), 'src', `${type}s`);
-    const fileName = `${name.toLowerCase()}.${type}.js`;
-    const filePath = path.join(dir, fileName);
-
-    if (!fs.existsSync(dir)) {
-        await fs.ensureDir(dir);
-    }
-
-    if (fs.existsSync(filePath)) {
-        console.log(chalk.yellow(`⚠ ${type} ${name} already exists.`));
-        return;
-    }
-
-    let content = '';
-    const className = name.charAt(0).toUpperCase() + name.slice(1);
-
-    switch(type) {
-        case 'model':
-            content = `class ${className} {\n    constructor() {\n        // Model logic\n    }\n}\n\nmodule.exports = ${className};`;
-            break;
-        case 'controller':
-            content = `const ${className}Service = require('../services/${name.toLowerCase()}.service');\n\nclass ${className}Controller {\n    async getAll(req, res) {\n        // Controller logic\n    }\n}\n\nmodule.exports = new ${className}Controller();`;
-            break;
-        case 'service':
-            content = `const ${className}Repository = require('../repositories/${name.toLowerCase()}.repository');\n\nclass ${className}Service {\n    async findAll() {\n        // Service logic\n    }\n}\n\nmodule.exports = new ${className}Service();`;
-            break;
-        case 'repository':
-            content = `class ${className}Repository {\n    async find() {\n        // Repository logic\n    }\n}\n\nmodule.exports = new ${className}Repository();`;
-            break;
-        case 'route':
-            content = `const express = require('express');\nconst router = express.Router();\nconst ${className}Controller = require('../controllers/${name.toLowerCase()}.controller');\n\nrouter.get('/', ${className}Controller.getAll);\n\nmodule.exports = router;`;
-            break;
-    }
-
-    await fs.writeFile(filePath, content);
-    console.log(chalk.green(`✔ Created ${type}: ${fileName}`));
 };
 
-program
-  .command('make:model <name>')
-  .description('Create a new model')
-  .action((name) => generateFile('model', name));
+const findProjectRoot = (startDir) => {
+    let currentDir = startDir;
+    while (currentDir !== path.parse(currentDir).root) {
+        if (fs.existsSync(path.join(currentDir, 'package.json'))) return currentDir;
+        currentDir = path.dirname(currentDir);
+    }
+    return startDir;
+};
 
-program
-  .command('make:controller <name>')
-  .description('Create a new controller')
-  .action((name) => generateFile('controller', name));
+// --- LOGIC: GENERATORS ---
+const makeFile = async (type, name) => {
+    const rootDir = findProjectRoot(process.cwd());
+    const resourceName = name.charAt(0).toUpperCase() + name.slice(1);
+    const lowerName = name.toLowerCase();
+    const templates = {
+        controller: { path: `src/controllers/${lowerName}.controller.js`, content: `class ${resourceName}Controller {\n    async index(req, res) { res.json({ msg: '${resourceName} Controller' }); }\n}\nmodule.exports = new ${resourceName}Controller();` },
+        model: { path: `src/models/${lowerName}.model.js`, content: `const mongoose = require('mongoose');\nconst schema = new mongoose.Schema({ name: String });\nmodule.exports = mongoose.model('${resourceName}', schema);` },
+        route: { path: `src/routes/${lowerName}.route.js`, content: `const express = require('express');\nconst router = express.Router();\nconst ctrl = require('../controllers/${lowerName}.controller');\nrouter.get('/', ctrl.index);\nmodule.exports = router;` },
+        service: { path: `src/services/${lowerName}.service.js`, content: `class ${resourceName}Service {\n    async getAll() { return { data: '${resourceName} Data' }; }\n}\nmodule.exports = new ${resourceName}Service();` },
+        repository: { path: `src/repositories/${lowerName}.repository.js`, content: `const Model = require('../models/${lowerName}.model');\nclass ${resourceName}Repository {\n    async findAll() { return await Model.find(); }\n}\nmodule.exports = new ${resourceName}Repository();` },
+        middleware: { path: `src/middleware/${lowerName}.middleware.js`, content: `module.exports = (req, res, next) => { next(); };` }
+    };
+    const file = templates[type];
+    const fullPath = path.join(rootDir, file.path);
+    await fs.ensureDir(path.dirname(fullPath));
+    await fs.writeFile(fullPath, file.content);
+    console.log(chalk.green(`  ✔ Created ${type}: ${file.path}`));
+};
 
-program
-  .command('make:service <name>')
-  .description('Create a new service')
-  .action((name) => generateFile('service', name));
+const handleInit = async () => {
+    showBanner();
+    const answers = await inquirer.prompt([
+        { type: 'input', name: 'projectName', message: 'Project Name:', default: 'expresso-app' },
+        { type: 'confirm', name: 'auth', message: 'Include Auth?', default: true },
+        { type: 'list', name: 'dbType', message: 'DB:', choices: ['MongoDB', 'MySQL', 'SQLite'] },
+        { type: 'confirm', name: 'install', message: 'Install dependencies?', default: true }
+    ]);
+    const targetDir = path.join(process.cwd(), answers.projectName);
+    try {
+        await fs.ensureDir(targetDir);
+        await fs.copy(path.join(__dirname, '../templates'), targetDir);
+        const pkgPath = path.join(targetDir, 'package.json');
+        const pkg = await fs.readJson(pkgPath);
+        if (answers.dbType === 'MySQL') pkg.dependencies['mysql2'] = '^3.6.0';
+        else if (answers.dbType === 'SQLite') pkg.dependencies['sqlite3'] = '^5.1.0';
+        await fs.writeJson(pkgPath, pkg, { spaces: 2 });
+        if (answers.install) { console.log(chalk.yellow('📦 Installing...')); execSync('npm install', { stdio: 'inherit', cwd: targetDir }); }
+        console.log(chalk.cyan(`\n✨ Project ready!`));
+    } catch (e) { console.error(e); }
+};
 
-program
-  .command('make:repository <name>')
-  .description('Create a new repository')
-  .action((name) => generateFile('repository', name));
+const handleGenerate = async () => {
+    const { action } = await inquirer.prompt([{ type: 'list', name: 'action', message: 'What to generate?', choices: ['Backend (MVC)', 'Frontend (React Integration)'] }]);
+    if (action === 'Frontend (React Integration)') {
+        const rootDir = findProjectRoot(process.cwd());
+        console.log(chalk.blue('\n🚀 Adding React Frontend...'));
+        execSync('npm create vite@latest frontend -- --template react', { stdio: 'inherit', cwd: rootDir });
+        execSync('npm install concurrently --save-dev', { stdio: 'inherit', cwd: rootDir });
+        const pkgPath = path.join(rootDir, 'package.json');
+        const pkg = await fs.readJson(pkgPath);
+        pkg.scripts = { ...pkg.scripts, "server": "node src/index.js", "client": "npm run dev --prefix frontend", "dev": "concurrently \"npm run server\" \"npm run client\"" };
+        await fs.writeJson(pkgPath, pkg, { spaces: 2 });
+        console.log(chalk.green('\n✅ Frontend added!'));
+    } else {
+        const { type, name } = await inquirer.prompt([
+            { type: 'list', name: 'type', message: 'Type:', choices: ['All (CRUD Stack)', 'Controller', 'Model', 'Route', 'Service', 'Repository', 'Middleware'] },
+            { type: 'input', name: 'name', message: 'Name:', validate: i => i ? true : 'Required!' }
+        ]);
+        if (type === 'All (CRUD Stack)') {
+            for (const t of ['model', 'repository', 'service', 'controller', 'route']) await makeFile(t, name);
+        } else await makeFile(type.toLowerCase(), name);
+    }
+};
 
-program
-  .command('make:route <name>')
-  .description('Create a new route')
-  .action((name) => generateFile('route', name));
+const handleBuildStack = async () => {
+    const rootDir = findProjectRoot(process.cwd());
+    console.log(chalk.blue('\n🚀 Building...'));
+    try {
+        execSync('npm run build --prefix frontend', { stdio: 'inherit', cwd: rootDir });
+        const distDir = path.join(rootDir, 'frontend/dist');
+        const publicDir = path.join(rootDir, 'src/public');
+        await fs.ensureDir(publicDir); await fs.emptyDir(publicDir); await fs.copy(distDir, publicDir);
 
-program
-  .command('make:all <name>')
-  .description('Create model, controller, route, service, and repository')
-  .action(async (name) => {
-    await generateFile('model', name);
-    await generateFile('controller', name);
-    await generateFile('service', name);
-    await generateFile('repository', name);
-    await generateFile('route', name);
-    console.log(chalk.magenta(`\n🚀 Full stack for ${name} is ready!`));
-  });
+        const indexPath = path.join(rootDir, 'src/index.js');
+        if (await fs.pathExists(indexPath)) {
+            let content = await fs.readFile(indexPath, 'utf8');
+            let imports = "";
+            if (!content.includes("require('path')")) imports += "const path = require('path');\n";
+            if (!content.includes("require('fs')")) imports += "const fs = require('fs');\n";
+            if (imports) content = imports + content;
+            const smartRouteLogic = `\n// --- Smart Routing (React vs API) ---\nconst publicPath = path.join(__dirname, 'public');\nif (fs.existsSync(publicPath)) {\n    app.use(express.static(publicPath));\n    app.get('*', (req, res) => {\n        if (req.path.startsWith('/api')) return res.status(404).json({ error: 'API not found' });\n        res.sendFile(path.join(publicPath, 'index.html'));\n    });\n} else {\n    app.get('/', (req, res) => res.json({ message: 'Welcome to Expresso Framework API' }));\n}\n`;
+            const oldRouteRegex = /app\.get\('\/',[\s\S]*?\}\);\s*\}\);/m;
+            if (content.match(oldRouteRegex)) content = content.replace(oldRouteRegex, smartRouteLogic);
+            else if (!content.includes('Smart Routing')) content += smartRouteLogic;
+            await fs.writeFile(indexPath, content);
+        }
+        console.log(chalk.green('\n✅ Done!'));
+    } catch (e) { console.error(e); }
+};
 
-program.parse(process.argv);
+const mainHandler = async () => {
+    showBanner();
+    const { action } = await inquirer.prompt([{ type: 'list', name: 'action', message: 'Action:', choices: ['init', 'generate', 'build:stack'] }]);
+    if (action === 'init') await handleInit();
+    else if (action === 'generate') await handleGenerate();
+    else await handleBuildStack();
+};
+
+program.command('init').action(handleInit);
+program.command('generate').alias('g').action(handleGenerate);
+program.command('build:stack').action(handleBuildStack);
+
+if (process.argv.length > 2) program.parse(process.argv);
+else mainHandler();
