@@ -770,7 +770,7 @@ export default function DashboardLayout() {
         // Tailwind Setup
         console.log(chalk.yellow('\n🎨 Configuring Tailwind CSS...'));
         try {
-            execSync('npm install -D tailwindcss postcss autoprefixer', { stdio: 'inherit', cwd: frontendDir });
+            execSync('npm install -D tailwindcss@^3.4 postcss autoprefixer', { stdio: 'inherit', cwd: frontendDir });
             execSync('npx tailwindcss init -p', { stdio: 'inherit', cwd: frontendDir });
         } catch(e) {}
         await fs.writeFile(path.join(frontendDir, 'src/index.css'), '@tailwind base;\n@tailwind components;\n@tailwind utilities;\nbody { margin: 0; padding: 0; }\n');
